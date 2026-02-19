@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma client
+        run: pnpm --filter @csediualumni/prisma db:generate
+
       - name: Lint
         run: pnpm lint
 
@@ -54,6 +57,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @csediualumni/prisma db:generate
 
       - name: Run unit tests with coverage
         run: pnpm test:coverage
@@ -110,6 +116,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate Prisma client
+        run: pnpm --filter @csediualumni/prisma db:generate
+
       - name: Run Prisma migrations on test DB
         working-directory: packages/prisma
         env:
@@ -145,6 +154,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @csediualumni/prisma db:generate
 
       - name: Build
         run: pnpm build
