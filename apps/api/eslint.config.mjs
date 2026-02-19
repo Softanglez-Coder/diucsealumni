@@ -56,6 +56,8 @@ export default [
       '@typescript-eslint/no-unsafe-member-access': 'warn',
       '@typescript-eslint/no-unsafe-return': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
+      // Prisma-generated types aren't resolvable by ESLint's project service
+      '@typescript-eslint/no-redundant-type-constituents': 'warn',
 
       // Import ordering
       'import/order': importOrderRule,
@@ -67,6 +69,8 @@ export default [
       'unicorn/prefer-module': 'off',
       'unicorn/filename-case': ['error', { case: 'kebabCase' }],
       'unicorn/no-process-exit': 'off',
+      // CommonJS module system — top-level await is not available
+      'unicorn/prefer-top-level-await': 'off',
     },
   },
 
