@@ -26,8 +26,8 @@ const importOrderRule = [
   },
 ];
 
-export default [
-  { ignores: ['.next/**', 'node_modules/**'] },
+const config = [
+  { ignores: ['.next/**', 'node_modules/**', 'next-env.d.ts'] },
 
   // Next.js core web vitals rules via legacy compat shim
   ...compat.extends('next/core-web-vitals'),
@@ -66,3 +66,5 @@ export default [
     },
   },
 ];
+
+export default config;
