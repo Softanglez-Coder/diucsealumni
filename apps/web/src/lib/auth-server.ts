@@ -20,7 +20,13 @@ export async function getServerSession(): Promise<ServerSession | null> {
   const refreshToken = cookieStore.get('refresh_token');
   if (!refreshToken?.value) return null;
 
-  // TODO: call /auth/me on the API with the refresh token to get session data
-  // For now, return a placeholder to enable layout-level auth guards
-  return null;
+  // TODO: Validate the refresh token against the API (/api/v1/auth/me) to get
+  // real session data including userId and permissions.
+  // For now, return a placeholder to enable layout-level auth guards so the
+  // portal is reachable when a refresh token cookie is present.
+  return {
+    userId: '',
+    email: '',
+    permissions: [],
+  };
 }

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
+import { PortalShell } from '@/components/layout/portal-shell';
 import { getServerSession } from '@/lib/auth-server';
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -9,5 +10,5 @@ export default async function PortalLayout({ children }: { children: React.React
     redirect('/auth/login');
   }
 
-  return <>{children}</>;
+  return <PortalShell>{children}</PortalShell>;
 }
