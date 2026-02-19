@@ -5,7 +5,6 @@ import { FlatCompat } from '@eslint/eslintrc';
 import js from '@eslint/js';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
-import importPlugin from 'eslint-plugin-import';
 import unicornPlugin from 'eslint-plugin-unicorn';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -40,7 +39,6 @@ export default [
 
   {
     files: ['src/**/*.{ts,tsx}'],
-    plugins: { import: importPlugin },
     languageOptions: {
       parser: tsParser,
       parserOptions: { ecmaVersion: 'latest', sourceType: 'module' },
