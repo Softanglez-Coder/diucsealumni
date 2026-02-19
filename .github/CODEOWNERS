@@ -1,0 +1,26 @@
+# CODEOWNERS
+# Defines default reviewers for different parts of the codebase.
+# The last matching pattern takes precedence. See:
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# ─── Default: require maintainer review on everything ────────────────────────
+*                                  @Softanglez-Coder/csediualumni
+
+# ─── Documentation ───────────────────────────────────────────────────────────
+docs/**                            @Softanglez-Coder/csediualumni-maintainers
+
+# ─── Shared packages ─────────────────────────────────────────────────────────
+packages/**                        @Softanglez-Coder/csediualumni-maintainers
+
+# ─── Prisma schema / migrations ──────────────────────────────────────────────
+packages/prisma/**                 @Softanglez-Coder/csediualumni-maintainers @Softanglez-Coder/csediualumni-backend
+
+# ─── Backend (NestJS API) ─────────────────────────────────────────────────────
+apps/api/**                        @Softanglez-Coder/csediualumni-backend
+
+# ─── Frontend (Next.js) ──────────────────────────────────────────────────────
+apps/web/**                        @Softanglez-Coder/csediualumni-frontend
+
+# ─── CI / CD / infrastructure ────────────────────────────────────────────────
+.github/**                         @Softanglez-Coder/csediualumni-devops
+docker-compose*.yml                @Softanglez-Coder/csediualumni-devops

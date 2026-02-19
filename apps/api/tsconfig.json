@@ -1,0 +1,9 @@
+{
+  "extends": "@csediualumni/config/typescript/nestjs",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "baseUrl": "./"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "test"]
+}

@@ -1,0 +1,572 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Prisma schema — CSE DIU Alumni Platform
+// Single source of truth for the database model.
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── RBAC ─────────────────────────────────────────────────────────────────────
+
+model Permission {
+  id          String           @id @default(cuid())
+  name        String           @unique // e.g. "events:create"
+  description String?
+  roles       RolePermission[]
+  createdAt   DateTime         @default(now())
+
+  @@map("permissions")
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique // e.g. "Moderator"
+  description String?
+  isSystem    Boolean          @default(false) // system roles cannot be deleted
+  permissions RolePermission[]
+  users       UserRole[]
+  createdAt   DateTime         @default(now())
+
+  @@map("roles")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId     String
+  roleId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+  assignedBy String? // userId of the admin who made the assignment
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+// ─── Users & Auth ─────────────────────────────────────────────────────────────
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String? // null for Google-only accounts
+  googleId        String?   @unique
+  firstName       String
+  lastName        String
+  avatarUrl       String?
+  isEmailVerified Boolean   @default(false)
+  isSuspended     Boolean   @default(false)
+  mfaSecret       String? // TOTP secret (encrypted at rest)
+  mfaEnabled      Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  refreshTokens        RefreshToken[]
+  roles                UserRole[]
+  profile              MemberProfile?
+  membershipApplication MembershipApplication?
+  membership           Membership?
+  notifications        Notification[]
+  auditLogsCreated     AuditLog[]             @relation("AuditLogActor")
+  donations            Donation[]
+  jobPostings          JobPosting[]
+  mentorProfile        MentorProfile?
+  mentorshipRequests   MentorshipRequest[]    @relation("MenteeRequests")
+  forumPosts           ForumPost[]
+  forumThreads         ForumThread[]
+  forumVotes           ForumVote[]
+  newsComments         NewsComment[]
+  eventRsvps           EventRsvp[]
+
+  @@index([email])
+  @@index([googleId])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique // bcrypt hash of the raw token
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent String?
+  ipAddress String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ─── Member Profile ───────────────────────────────────────────────────────────
+
+enum ProfileVisibility {
+  PUBLIC
+  MEMBERS_ONLY
+  PRIVATE
+}
+
+model MemberProfile {
+  id               String            @id @default(cuid())
+  userId           String            @unique
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  username         String            @unique
+  batchYear        Int?
+  jobTitle         String?
+  employer         String?
+  location         String?
+  bio              String?
+  skills           String[]
+  linkedinUrl      String?
+  githubUrl        String?
+  websiteUrl       String?
+  cvUrl            String? // S3 key
+  visibility       ProfileVisibility @default(PUBLIC)
+  isFeatured       Boolean           @default(false)
+  timelineEntries  TimelineEntry[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([username])
+  @@map("member_profiles")
+}
+
+model TimelineEntry {
+  id          String        @id @default(cuid())
+  profileId   String
+  profile     MemberProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  date        DateTime
+  createdAt   DateTime      @default(now())
+
+  @@index([profileId])
+  @@map("timeline_entries")
+}
+
+// ─── Membership ───────────────────────────────────────────────────────────────
+
+enum MembershipTier {
+  REGULAR
+  LIFE
+  HONORARY
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REVISION_REQUESTED
+}
+
+model MembershipApplication {
+  id                  String            @id @default(cuid())
+  userId              String            @unique
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status              ApplicationStatus @default(PENDING)
+  personalDetails     Json
+  educationalDetails  Json
+  occupationDetails   Json
+  reviewNotes         String?
+  reviewedBy          String?
+  reviewedAt          DateTime?
+  submittedAt         DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([status])
+  @@map("membership_applications")
+}
+
+enum MembershipStatus {
+  ACTIVE
+  EXPIRED
+  SUSPENDED
+}
+
+model Membership {
+  id               String           @id @default(cuid())
+  userId           String           @unique
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  membershipNumber String           @unique // e.g. CSEDIA-REG-2025-00142
+  tier             MembershipTier
+  status           MembershipStatus @default(ACTIVE)
+  validFrom        DateTime
+  expiresAt        DateTime?
+  sequence         Int // incrementing sequence within the year (for number generation)
+  issuedAt         DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([membershipNumber])
+  @@index([status])
+  @@map("memberships")
+}
+
+// ─── Events ───────────────────────────────────────────────────────────────────
+
+model Event {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  location    String?
+  isVirtual   Boolean     @default(false)
+  virtualLink String?
+  bannerUrl   String? // S3 key
+  startAt     DateTime
+  endAt       DateTime?
+  seatLimit   Int?
+  isArchived  Boolean     @default(false)
+  createdBy   String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+
+  rsvps       EventRsvp[]
+  photos      EventPhoto[]
+
+  @@index([startAt])
+  @@map("events")
+}
+
+model EventRsvp {
+  userId    String
+  eventId   String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, eventId])
+  @@map("event_rsvps")
+}
+
+model EventPhoto {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  url       String // S3 key
+  caption   String?
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+  @@map("event_photos")
+}
+
+// ─── News & Updates ───────────────────────────────────────────────────────────
+
+enum NewsStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model NewsArticle {
+  id           String       @id @default(cuid())
+  title        String
+  slug         String       @unique
+  content      String // rich text (HTML/JSON)
+  featuredImage String? // S3 key
+  tags         String[]
+  authorId     String
+  status       NewsStatus   @default(DRAFT)
+  publishedAt  DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  deletedAt    DateTime?
+
+  comments     NewsComment[]
+
+  @@index([slug])
+  @@index([status])
+  @@map("news_articles")
+}
+
+model NewsComment {
+  id        String      @id @default(cuid())
+  articleId String
+  article   NewsArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content   String
+  isApproved Boolean   @default(false)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  deletedAt DateTime?
+
+  @@index([articleId])
+  @@map("news_comments")
+}
+
+// ─── Discussion Forum ─────────────────────────────────────────────────────────
+
+model ForumCategory {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  description String?
+  slug        String        @unique
+  threads     ForumThread[]
+  createdAt   DateTime      @default(now())
+
+  @@map("forum_categories")
+}
+
+model ForumThread {
+  id          String        @id @default(cuid())
+  categoryId  String
+  category    ForumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  authorId    String
+  author      User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title       String
+  isPinned    Boolean       @default(false)
+  isLocked    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  posts       ForumPost[]
+
+  @@index([categoryId])
+  @@map("forum_threads")
+}
+
+model ForumPost {
+  id        String      @id @default(cuid())
+  threadId  String
+  thread    ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content   String
+  isFlagged Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  deletedAt DateTime?
+
+  votes     ForumVote[]
+
+  @@index([threadId])
+  @@map("forum_posts")
+}
+
+enum VoteType {
+  UP
+  DOWN
+}
+
+model ForumVote {
+  userId    String
+  postId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  type      VoteType
+  createdAt DateTime  @default(now())
+
+  @@id([userId, postId])
+  @@map("forum_votes")
+}
+
+// ─── Donations ────────────────────────────────────────────────────────────────
+
+enum DonationStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model DonationCampaign {
+  id          String     @id @default(cuid())
+  title       String
+  description String
+  goalAmount  Decimal    @db.Decimal(12, 2)
+  deadline    DateTime?
+  isActive    Boolean    @default(true)
+  createdBy   String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  donations   Donation[]
+
+  @@map("donation_campaigns")
+}
+
+model Donation {
+  id           String           @id @default(cuid())
+  campaignId   String
+  campaign     DonationCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  donorId      String?
+  donor        User?            @relation(fields: [donorId], references: [id], onDelete: SetNull)
+  isAnonymous  Boolean          @default(false)
+  amount       Decimal          @db.Decimal(12, 2)
+  currency     String           @default("BDT")
+  status       DonationStatus   @default(PENDING)
+  provider     String // "sslcommerz" | "stripe"
+  transactionId String?         @unique
+  receiptSentAt DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([campaignId])
+  @@index([donorId])
+  @@map("donations")
+}
+
+// ─── Job Board ────────────────────────────────────────────────────────────────
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  REMOTE
+}
+
+enum JobStatus {
+  PENDING
+  PUBLISHED
+  FILLED
+  EXPIRED
+  REJECTED
+}
+
+model JobPosting {
+  id              String    @id @default(cuid())
+  postedById      String
+  postedBy        User      @relation(fields: [postedById], references: [id], onDelete: Cascade)
+  title           String
+  company         String
+  location        String?
+  isRemote        Boolean   @default(false)
+  jobType         JobType
+  description     String
+  requirements    String?
+  applicationLink String?
+  applicationEmail String?
+  status          JobStatus @default(PENDING)
+  expiresAt       DateTime?
+  approvedBy      String?
+  approvedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status])
+  @@map("job_postings")
+}
+
+// ─── Mentorship ───────────────────────────────────────────────────────────────
+
+model MentorProfile {
+  id           String              @id @default(cuid())
+  userId       String              @unique
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expertiseAreas String[]
+  availability String?
+  isActive     Boolean             @default(true)
+  bio          String?
+  averageRating Decimal?           @db.Decimal(3, 2)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  requests     MentorshipRequest[]
+
+  @@map("mentor_profiles")
+}
+
+enum MentorshipRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  COMPLETED
+}
+
+model MentorshipRequest {
+  id          String                  @id @default(cuid())
+  menteeId    String
+  mentee      User                    @relation("MenteeRequests", fields: [menteeId], references: [id], onDelete: Cascade)
+  mentorId    String
+  mentor      MentorProfile           @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+  message     String?
+  status      MentorshipRequestStatus @default(PENDING)
+  rating      Int?                    // 1-5, filled on completion
+  feedback    String?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@index([menteeId])
+  @@index([mentorId])
+  @@map("mentorship_requests")
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+enum NotificationType {
+  NEW_EVENT
+  JOB_POSTING
+  MEMBERSHIP_STATUS_CHANGED
+  FORUM_REPLY
+  DONATION_CAMPAIGN
+  DIRECT_MESSAGE
+  ADMIN_ANNOUNCEMENT
+  MEMBERSHIP_CARD_READY
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  linkUrl   String?
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+// ─── Membership Cards ─────────────────────────────────────────────────────────
+
+model MembershipCard {
+  id               String   @id @default(cuid())
+  membershipNumber String   @unique // FK by value (membership number is immutable)
+  pdfUrl           String? // S3 key
+  pngUrl           String? // S3 key
+  generatedAt      DateTime @default(now())
+  reissuedAt       DateTime?
+
+  @@map("membership_cards")
+}
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  actor      User     @relation("AuditLogActor", fields: [actorId], references: [id], onDelete: Cascade)
+  action     String // e.g. "membership:approved", "role:assigned"
+  entityType String // e.g. "Membership", "UserRole"
+  entityId   String?
+  before     Json?
+  after      Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

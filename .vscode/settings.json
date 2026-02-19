@@ -1,0 +1,64 @@
+{
+  // ─── GitHub Copilot context files ────────────────────────────────────────────
+  // These files are injected into Copilot Chat for every relevant task type,
+  // giving the AI full project context before it generates anything.
+
+  "github.copilot.chat.codeGeneration.instructions": [
+    { "file": ".github/copilot-instructions.md" },
+    { "file": "docs/requirements/functional.md" },
+    { "file": "docs/requirements/non-functional.md" },
+    { "file": "docs/architecture/system-design.md" },
+    { "file": "docs/architecture/rbac.md" },
+    { "file": "docs/architecture/authentication.md" },
+    { "file": "docs/architecture/tech-stack.md" },
+    { "file": "docs/development/code-standards.md" }
+  ],
+
+  "github.copilot.chat.testGeneration.instructions": [
+    { "file": ".github/copilot-instructions.md" },
+    { "file": "docs/development/testing.md" },
+    { "file": "docs/architecture/rbac.md" }
+  ],
+
+  "github.copilot.chat.reviewSelection.instructions": [
+    { "file": ".github/copilot-instructions.md" },
+    { "file": "docs/development/code-standards.md" },
+    { "file": "docs/development/testing.md" }
+  ],
+
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    {
+      "text": "Use Conventional Commits format: feat|fix|chore|docs|test|refactor|perf|ci|build|style(scope): description. Scope should be the feature module (e.g. auth, events, membership, forum, portal). Keep the subject line under 72 characters. Add a body if the change is non-trivial."
+    }
+  ],
+
+  // ─── Editor defaults ──────────────────────────────────────────────────────────
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.rulers": [100],
+  "editor.tabSize": 2,
+  "files.eol": "\n",
+
+  // ─── TypeScript ───────────────────────────────────────────────────────────────
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  // ─── File associations ────────────────────────────────────────────────────────
+  "files.associations": {
+    "*.env.*": "dotenv"
+  },
+
+  // ─── Search / explorer exclusions ────────────────────────────────────────────
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.turbo": true,
+    "**/coverage": true
+  },
+  "files.exclude": {
+    "**/.turbo": true
+  }
+}

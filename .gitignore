@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Turbo cache
+.turbo/
+
+# Coverage
+coverage/
+
+# Environment files — never commit real values
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/*.log
+.vscode/ipch
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Prisma generated client
+packages/prisma/generated/
+
+# MinIO local data
+.minio-data/
+
+# Playwright
+apps/web/playwright-report/
+apps/web/test-results/
