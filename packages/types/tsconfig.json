@@ -1,5 +1,14 @@
 {
   "extends": "@csediualumni/config/typescript/base",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

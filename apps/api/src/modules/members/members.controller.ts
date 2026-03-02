@@ -54,10 +54,10 @@ export class MembersController {
     @Query('batch') batch?: string,
   ) {
     return this.membersService.listMembers({
-      page: page ? Number(page) : undefined,
-      limit: limit ? Number(limit) : undefined,
-      search,
-      batch: batch ? Number(batch) : undefined,
+      ...(page !== undefined && { page: Number(page) }),
+      ...(limit !== undefined && { limit: Number(limit) }),
+      ...(search !== undefined && { search }),
+      ...(batch !== undefined && { batch: Number(batch) }),
     });
   }
 

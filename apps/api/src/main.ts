@@ -8,6 +8,7 @@ import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -52,6 +53,9 @@ async function bootstrap(): Promise<void> {
 
   // Global exception filter — RFC 7807 Problem Details responses
   app.useGlobalFilters(new HttpExceptionFilter());
+
+  // Global response interceptor — wraps all successful responses in { data: ... }
+  app.useGlobalInterceptors(new ResponseInterceptor());
 
   // Swagger API docs (development only)
   if (configService.get('NODE_ENV') !== 'production') {

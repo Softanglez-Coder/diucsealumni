@@ -21,8 +21,8 @@ export class NotificationsController {
     @Query('limit') limit?: string,
   ) {
     return this.notificationsService.listNotifications(user.sub, {
-      page: page ? Number(page) : undefined,
-      limit: limit ? Number(limit) : undefined,
+      ...(page !== undefined && { page: Number(page) }),
+      ...(limit !== undefined && { limit: Number(limit) }),
     });
   }
 

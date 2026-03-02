@@ -20,10 +20,10 @@ export class JobsController {
     @Query('search') search?: string,
   ) {
     return this.jobsService.listJobs({
-      page: page ? Number(page) : undefined,
-      limit: limit ? Number(limit) : undefined,
-      jobType,
-      search,
+      ...(page !== undefined && { page: Number(page) }),
+      ...(limit !== undefined && { limit: Number(limit) }),
+      ...(jobType !== undefined && { jobType }),
+      ...(search !== undefined && { search }),
     });
   }
 

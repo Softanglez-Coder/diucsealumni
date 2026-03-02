@@ -24,9 +24,10 @@ export class EventsController {
     @Query('upcoming') upcoming?: string,
   ) {
     return this.eventsService.listEvents({
-      page: page ? Number(page) : undefined,
-      limit: limit ? Number(limit) : undefined,
-      upcoming: upcoming === 'true' ? true : (upcoming === 'false' ? false : undefined),
+      ...(page !== undefined && { page: Number(page) }),
+      ...(limit !== undefined && { limit: Number(limit) }),
+      ...(upcoming === 'true' && { upcoming: true }),
+      ...(upcoming === 'false' && { upcoming: false }),
     });
   }
 
