@@ -19,6 +19,12 @@ import type { RegisterDto } from './dto/register.dto';
 
 const BCRYPT_ROUNDS = 12;
 
+/** Internal type that bundles the public response with the raw refresh token for the controller to set as an HttpOnly cookie. */
+interface TokenPair {
+  authResponse: AuthResponse;
+  rawRefreshToken: string;
+}
+
 interface GoogleProfile {
   googleId: string;
   email: string;
@@ -79,7 +85,7 @@ export class AuthService {
    * @throws {UnauthorizedException} If credentials are invalid.
    * @throws {ForbiddenException} If the account is suspended.
    */
-  async login(dto: LoginDto, userAgent?: string, ipAddress?: string): Promise<AuthResponse> {
+  async login(dto: LoginDto, userAgent?: string, ipAddress?: string): Promise<TokenPair> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email, deletedAt: null },
       include: {
@@ -149,7 +155,7 @@ export class AuthService {
   /**
    * Issues an access + refresh token pair after successful Google OAuth.
    */
-  async loginWithGoogle(user: User, userAgent?: string, ipAddress?: string): Promise<AuthResponse> {
+  async loginWithGoogle(user: User, userAgent?: string, ipAddress?: string): Promise<TokenPair> {
     const userWithRoles = await this.prisma.user.findUniqueOrThrow({
       where: { id: user.id },
       include: {
@@ -173,7 +179,7 @@ export class AuthService {
     rawRefreshToken: string,
     userAgent?: string,
     ipAddress?: string,
-  ): Promise<AuthResponse> {
+  ): Promise<TokenPair> {
     const storedTokens = await this.prisma.refreshToken.findMany({
       where: { userId, expiresAt: { gt: new Date() } },
     });
@@ -264,7 +270,7 @@ export class AuthService {
     },
     userAgent?: string,
     ipAddress?: string,
-  ): Promise<AuthResponse> {
+  ): Promise<TokenPair> {
     const permissions = this.resolvePermissions(user.roles);
 
     const payload: Omit<JwtPayload, 'iat' | 'exp'> = {
@@ -294,14 +300,17 @@ export class AuthService {
     });
 
     return {
-      accessToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        avatarUrl: user.avatarUrl ?? null,
-        permissions,
+      rawRefreshToken,
+      authResponse: {
+        accessToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          avatarUrl: user.avatarUrl ?? null,
+          permissions,
+        },
       },
     };
   }

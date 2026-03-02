@@ -145,41 +145,50 @@ async function main(): Promise<void> {
   }
   console.log(`✅ ${SYSTEM_ROLES.length} roles seeded`);
 
-  // Seed Super Admin user (only if no admin exists)
+  // ── System Super Admin (always present, always has full access) ──────────────
   const superAdminRole = await prisma.role.findUnique({ where: { name: 'Super Admin' } });
   if (!superAdminRole) throw new Error('Super Admin role not found after seeding');
 
-  const adminEmail = process.env['SEED_ADMIN_EMAIL'] ?? 'admin@csediualumni.com';
-  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } });
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const bcrypt = require('bcrypt') as { hash: (pw: string, rounds: number) => Promise<string> };
 
-  if (existingAdmin) {
-    console.log(`ℹ️  Super Admin account already exists (${adminEmail})`);
-  } else {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const bcrypt = require('bcrypt') as { hash: (pw: string, rounds: number) => Promise<string> };
-    const tempPassword = `Admin@${Math.random().toString(36).slice(2, 10)}!`;
-    const passwordHash = await bcrypt.hash(tempPassword, 12);
+  // System account — credentials read from env so they are never hardcoded.
+  // Set SEED_SYS_EMAIL and SEED_SYS_PASSWORD in packages/prisma/.env.
+  const SYS_EMAIL = process.env['SEED_SYS_EMAIL'];
+  const SYS_PASSWORD = process.env['SEED_SYS_PASSWORD'];
 
-    const admin = await prisma.user.create({
-      data: {
-        email: adminEmail,
-        passwordHash,
-        firstName: 'System',
-        lastName: 'Administrator',
-        isEmailVerified: true,
-        roles: {
-          create: { roleId: superAdminRole.id },
-        },
-      },
-    });
-
-    console.log('');
-    console.log('🔐 Super Admin account created:');
-    console.log(`   Email:    ${admin.email}`);
-    console.log(`   Password: ${tempPassword}`);
-    console.log('   ⚠️  Change this password immediately after first login!');
-    console.log('');
+  if (!SYS_EMAIL || !SYS_PASSWORD) {
+    throw new Error(
+      'SEED_SYS_EMAIL and SEED_SYS_PASSWORD must be set in packages/prisma/.env before seeding.',
+    );
   }
+  const sysPasswordHash = await bcrypt.hash(SYS_PASSWORD, 12);
+
+  const sysUser = await prisma.user.upsert({
+    where: { email: SYS_EMAIL },
+    update: {
+      passwordHash: sysPasswordHash,
+      isEmailVerified: true,
+      isSuspended: false,
+      deletedAt: null,
+    },
+    create: {
+      email: SYS_EMAIL,
+      passwordHash: sysPasswordHash,
+      firstName: 'System',
+      lastName: 'Admin',
+      isEmailVerified: true,
+    },
+  });
+
+  // Always ensure the Super Admin role is assigned to the system account.
+  await prisma.userRole.upsert({
+    where: { userId_roleId: { userId: sysUser.id, roleId: superAdminRole.id } },
+    update: {},
+    create: { userId: sysUser.id, roleId: superAdminRole.id },
+  });
+
+  console.log(`✅ System Super Admin ensured (${SYS_EMAIL})`);
 
   console.log('✅ Seeding complete');
 }

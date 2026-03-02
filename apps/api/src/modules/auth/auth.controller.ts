@@ -25,7 +25,9 @@ import { GoogleOAuthGuard } from './guards/google-oauth.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 
 const REFRESH_TOKEN_COOKIE = 'refresh_token';
-const REFRESH_COOKIE_PATH = '/api/v1/auth/refresh';
+// Path '/' allows Next.js server components to read the cookie for layout-level
+// auth guards (getServerSession). The cookie is still HttpOnly + SameSite=Strict.
+const REFRESH_COOKIE_PATH = '/';
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 @ApiTags('auth')
@@ -55,9 +57,13 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const result = await this.authService.login(dto, req.headers['user-agent'], req.ip);
-    this.setRefreshCookie(res, result.accessToken);
-    return result;
+    const { authResponse, rawRefreshToken } = await this.authService.login(
+      dto,
+      req.headers['user-agent'],
+      req.ip,
+    );
+    this.setRefreshCookie(res, rawRefreshToken);
+    return authResponse;
   }
 
   // ─── Google OAuth ─────────────────────────────────────────────────────────
@@ -78,17 +84,17 @@ export class AuthController {
     @Req() req: Request & { user: User },
     @Res() res: Response,
   ): Promise<void> {
-    const result = await this.authService.loginWithGoogle(
+    const { authResponse, rawRefreshToken } = await this.authService.loginWithGoogle(
       req.user,
       req.headers['user-agent'],
       req.ip,
     );
 
-    this.setRefreshCookie(res, result.accessToken);
+    this.setRefreshCookie(res, rawRefreshToken);
 
     // Redirect to frontend with access token; frontend removes it from URL immediately
     const frontendCallbackUrl = `${process.env['FRONTEND_URL'] ?? 'http://localhost:3000'}/auth/callback`;
-    res.redirect(`${frontendCallbackUrl}?access_token=${result.accessToken}`);
+    res.redirect(`${frontendCallbackUrl}?access_token=${authResponse.accessToken}`);
   }
 
   // ─── Token refresh ────────────────────────────────────────────────────────
@@ -105,14 +111,15 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const rawRefreshToken = (req.cookies as Record<string, string>)[REFRESH_TOKEN_COOKIE] ?? '';
-    const result = await this.authService.refreshTokens(
-      req.user.sub,
-      rawRefreshToken,
-      req.headers['user-agent'],
-      req.ip,
-    );
-    this.setRefreshCookie(res, result.accessToken);
-    return result;
+    const { authResponse, rawRefreshToken: newRawRefreshToken } =
+      await this.authService.refreshTokens(
+        req.user.sub,
+        rawRefreshToken,
+        req.headers['user-agent'],
+        req.ip,
+      );
+    this.setRefreshCookie(res, newRawRefreshToken);
+    return authResponse;
   }
 
   // ─── Logout ───────────────────────────────────────────────────────────────

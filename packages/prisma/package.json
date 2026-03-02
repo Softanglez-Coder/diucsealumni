@@ -20,7 +20,7 @@
     "dev": "tsc -p tsconfig.json --watch",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
-    "db:seed": "tsx src/seed.ts",
+    "db:seed": "tsx --env-file .env src/seed.ts",
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
