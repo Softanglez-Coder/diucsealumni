@@ -15,6 +15,7 @@ import { MentorshipModule } from './modules/mentorship/mentorship.module';
 import { NewsModule } from './modules/news/news.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { SearchModule } from './modules/search/search.module';
+import { StatsModule } from './modules/stats/stats.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -65,6 +66,7 @@ import { PrismaModule } from './prisma/prisma.module';
     NotificationsModule,
     SearchModule,
     MembershipCardsModule,
+    StatsModule,
   ],
 })
 export class AppModule {}

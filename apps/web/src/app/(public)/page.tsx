@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { formatStat, getPlatformStats } from '@/lib/api/stats.server';
 import { getKeyMembers } from '@/lib/committee-data';
 
 export const metadata: Metadata = {
@@ -62,7 +63,16 @@ function FeatureCard({ icon, title, description, href, linkLabel }: FeatureCardP
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Fetch live stats with a 5-minute cache; fall back to zeros on error so the
+  // page still renders if the API is temporarily unavailable.
+  let stats = { alumniCount: 0, eventsPerYear: 0, jobPlacements: 0, mentorsCount: 0 };
+  try {
+    stats = await getPlatformStats();
+  } catch {
+    // API unavailable — stats section will show zeros rather than crashing the page.
+  }
+
   return (
     <>
       {/* Hero */}
@@ -119,10 +129,10 @@ export default function HomePage() {
 
           {/* Stats */}
           <div className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-3xl mx-auto">
-            <StatCard value="1,200+" label="Alumni members" />
-            <StatCard value="50+" label="Events per year" />
-            <StatCard value="300+" label="Job placements" />
-            <StatCard value="40+" label="Mentors" />
+            <StatCard value={formatStat(stats.alumniCount)} label="Alumni members" />
+            <StatCard value={formatStat(stats.eventsPerYear)} label="Events per year" />
+            <StatCard value={formatStat(stats.jobPlacements)} label="Job placements" />
+            <StatCard value={formatStat(stats.mentorsCount)} label="Mentors" />
           </div>
         </div>
       </section>
