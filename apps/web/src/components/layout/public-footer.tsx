@@ -19,6 +19,7 @@ const COMMUNITY_LINKS = [
 
 const ABOUT_LINKS = [
   { href: '/about', label: 'About the Platform' },
+  { href: '/committee', label: 'Executive Committee' },
   { href: '/contact', label: 'Contact Us' },
   { href: '/privacy', label: 'Privacy Policy' },
   { href: '/terms', label: 'Terms of Service' },

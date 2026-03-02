@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { getKeyMembers } from '@/lib/committee-data';
+
 export const metadata: Metadata = {
   title: 'Home',
   description:
@@ -184,6 +186,9 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Committee */}
+      <CommitteeSection />
+
       {/* CTA */}
       <section className="bg-blue-700 py-16">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 text-center">
@@ -209,6 +214,65 @@ export default function HomePage() {
         </div>
       </section>
     </>
+  );
+}
+
+// ─── Committee section ───────────────────────────────────────────────────────
+
+function CommitteeSection() {
+  const members = getKeyMembers();
+  return (
+    <section className="py-20 sm:py-24 bg-white">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-2xl mx-auto mb-14">
+          <span className="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold uppercase tracking-wider mb-3">
+            Term 2024 – 2026
+          </span>
+          <h2 className="text-3xl font-bold text-gray-900">Executive Committee</h2>
+          <p className="mt-4 text-gray-500">
+            The CSE DIU Alumni Association is led by elected alumni volunteers. Meet the core team
+            serving the community.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {members.map((member) => (
+            <Link
+              key={member.slug}
+              href={`/committee/${member.slug}`}
+              className="group block rounded-2xl border border-blue-100 bg-white p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
+            >
+              <div
+                className={`w-16 h-16 rounded-2xl ${member.avatarColor} flex items-center justify-center text-white text-xl font-bold mb-4 select-none`}
+              >
+                {member.initials}
+              </div>
+              <span className="inline-block px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold mb-2">
+                {member.roleShort}
+              </span>
+              <h3 className="font-semibold text-gray-900 leading-snug group-hover:text-blue-700 transition-colors">
+                {member.name}
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">{member.batch}</p>
+              <p className="text-xs text-gray-400 mt-2 line-clamp-1">{member.jobTitle}</p>
+              <p className="text-xs text-gray-400">{member.company}</p>
+            </Link>
+          ))}
+        </div>
+
+        <div className="mt-10 text-center">
+          <Link
+            href="/committee"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl border border-blue-200 text-blue-700 font-semibold text-sm hover:bg-blue-50 transition-colors"
+          >
+            View full committee
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
+      </div>
+    </section>
   );
 }
 

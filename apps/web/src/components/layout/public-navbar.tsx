@@ -14,7 +14,7 @@ const NAV_LINKS = [
   { href: '/news', label: 'News' },
   { href: '/jobs', label: 'Jobs' },
   { href: '/forum', label: 'Forum' },
-  { href: '/alumni', label: 'Directory', authRequired: true },
+  { href: '/alumni', label: 'Alumni' },
 ];
 
 // ─── Logo ─────────────────────────────────────────────────────────────────────
@@ -146,7 +146,7 @@ function MobileMenu({ isAuthenticated, onClose }: MobileMenuProps) {
 
   return (
     <div className="md:hidden border-t border-gray-100 bg-white px-4 pb-4 pt-2 space-y-1">
-      {NAV_LINKS.filter((l) => !l.authRequired || isAuthenticated).map((link) => (
+      {NAV_LINKS.map((link) => (
         <Link
           key={link.href}
           href={link.href}
@@ -227,7 +227,7 @@ export function PublicNavbar() {
 
           {/* Desktop nav links */}
           <ul className="hidden md:flex items-center gap-1" role="list">
-            {NAV_LINKS.filter((l) => !l.authRequired || isAuthenticated).map((link) => (
+            {NAV_LINKS.map((link) => (
               <li key={link.href}>
                 <Link
                   href={link.href}
