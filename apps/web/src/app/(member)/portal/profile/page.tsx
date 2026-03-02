@@ -1,6 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+import { getMyProfile, updateMyProfile } from '@/lib/api/members.client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,6 +39,20 @@ const INITIAL_FORM: ProfileForm = {
   website: '',
   privacy: 'public',
 };
+
+// ─── Privacy mapping helpers ──────────────────────────────────────────────────
+
+function toApiVisibility(p: PrivacyLevel): 'PUBLIC' | 'MEMBERS_ONLY' | 'PRIVATE' {
+  if (p === 'public') return 'PUBLIC';
+  if (p === 'members') return 'MEMBERS_ONLY';
+  return 'PRIVATE';
+}
+
+function fromApiVisibility(v: string): PrivacyLevel {
+  if (v === 'PUBLIC') return 'public';
+  if (v === 'MEMBERS_ONLY') return 'members';
+  return 'private';
+}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -301,6 +317,31 @@ export default function PortalProfilePage() {
   const [form, setForm] = useState<ProfileForm>(INITIAL_FORM);
   const [saving, setSaving] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
+  // Load real profile data on mount
+  useEffect(() => {
+    getMyProfile()
+      .then((profile) => {
+        setForm({
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          username: profile.profile?.username ?? '',
+          batchYear: profile.profile?.batchYear ? String(profile.profile.batchYear) : '',
+          jobTitle: profile.profile?.jobTitle ?? '',
+          employer: profile.profile?.employer ?? '',
+          location: profile.profile?.location ?? '',
+          bio: profile.profile?.bio ?? '',
+          skills: (profile.profile?.skills ?? []).join(', '),
+          linkedin: profile.profile?.linkedinUrl ?? '',
+          github: profile.profile?.githubUrl ?? '',
+          website: profile.profile?.websiteUrl ?? '',
+          privacy: fromApiVisibility(profile.profile?.visibility ?? 'PUBLIC'),
+        });
+      })
+      .catch(() => null)
+      .finally(() => setLoadingProfile(false));
+  }, []);
 
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
@@ -312,14 +353,53 @@ export default function PortalProfilePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    // Simulated save — wire to API when auth is configured
-    await new Promise((r) => setTimeout(r, 800));
-    setSaving(false);
-    setToastVisible(true);
-    setTimeout(() => setToastVisible(false), 3000);
+    try {
+      // Build update payload, omitting undefined values (exactOptionalPropertyTypes)
+      type UpdatePayload = Parameters<typeof updateMyProfile>[0];
+      const payload: UpdatePayload = { visibility: toApiVisibility(form.privacy) };
+      if (form.firstName) payload.firstName = form.firstName;
+      if (form.lastName) payload.lastName = form.lastName;
+      if (form.username) payload.username = form.username;
+      if (form.batchYear) payload.batchYear = Number(form.batchYear);
+      if (form.jobTitle) payload.jobTitle = form.jobTitle;
+      if (form.employer) payload.employer = form.employer;
+      if (form.location) payload.location = form.location;
+      if (form.bio) payload.bio = form.bio;
+      if (form.linkedin) payload.linkedinUrl = form.linkedin;
+      if (form.github) payload.githubUrl = form.github;
+      if (form.website) payload.websiteUrl = form.website;
+      payload.skills = form.skills
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      await updateMyProfile(payload);
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 3000);
+    } catch {
+      // TODO: show error toast
+    } finally {
+      setSaving(false);
+    }
   }
 
   const batchYears = Array.from({ length: 20 }, (_, i) => String(new Date().getFullYear() - i));
+
+  if (loadingProfile) {
+    return (
+      <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-3xl mx-auto space-y-6">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 animate-pulse space-y-4">
+          <div className="h-5 bg-gray-200 rounded w-1/3" />
+          <div className="h-4 bg-gray-100 rounded w-2/3" />
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-10 bg-gray-100 rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

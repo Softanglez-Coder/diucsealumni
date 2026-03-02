@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 
+import { getMyProfile } from '@/lib/api/members.client';
+import { getUnreadCount } from '@/lib/api/notifications.client';
 import { useAuthStore } from '@/lib/auth';
 
 // ─── Portal Topbar ────────────────────────────────────────────────────────────
@@ -17,6 +19,11 @@ export function PortalTopbar({ onMobileMenuOpen }: PortalTopbarProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const clearAccessToken = useAuthStore((s) => s.clearAccessToken);
 
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [displayName, setDisplayName] = useState('CSE Alumni Member');
+  const [email, setEmail] = useState('member@csediualumni.com');
+  const [initials, setInitials] = useState('U');
+
   useEffect(() => {
     function handle(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -25,6 +32,20 @@ export function PortalTopbar({ onMobileMenuOpen }: PortalTopbarProps) {
     }
     document.addEventListener('mousedown', handle);
     return () => document.removeEventListener('mousedown', handle);
+  }, []);
+
+  useEffect(() => {
+    getUnreadCount()
+      .then((data) => setUnreadCount(data.unread))
+      .catch(() => null);
+
+    getMyProfile()
+      .then((profile) => {
+        setDisplayName(`${profile.firstName} ${profile.lastName}`);
+        setEmail(profile.email);
+        setInitials(`${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase());
+      })
+      .catch(() => null);
   }, []);
 
   function handleLogout() {
@@ -60,14 +81,17 @@ export function PortalTopbar({ onMobileMenuOpen }: PortalTopbarProps) {
       {/* Notification bell */}
       <button
         className="relative flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
-        aria-label="Notifications"
+        aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
       >
         <BellIcon />
-        {/* Unread badge (placeholder) */}
-        <span
-          className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600"
-          aria-hidden="true"
-        />
+        {unreadCount > 0 && (
+          <span
+            className="absolute -top-0.5 -right-0.5 min-w-[1.1rem] h-[1.1rem] px-0.5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center leading-none"
+            aria-hidden="true"
+          >
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
       </button>
 
       {/* User avatar dropdown */}
@@ -80,7 +104,7 @@ export function PortalTopbar({ onMobileMenuOpen }: PortalTopbarProps) {
           aria-expanded={menuOpen}
         >
           <span className="flex items-center justify-center w-9 h-9 rounded-full bg-blue-100 text-blue-700 font-semibold text-sm select-none">
-            U
+            {initials}
           </span>
           <svg
             className={`w-4 h-4 text-gray-400 transition-transform ${menuOpen ? 'rotate-180' : ''}`}
@@ -100,8 +124,8 @@ export function PortalTopbar({ onMobileMenuOpen }: PortalTopbarProps) {
             role="menu"
           >
             <div className="px-4 py-2.5 border-b border-gray-100 mb-1">
-              <p className="text-xs font-medium text-gray-900 truncate">CSE Alumni Member</p>
-              <p className="text-xs text-gray-500 truncate">member@csediualumni.com</p>
+              <p className="text-xs font-medium text-gray-900 truncate">{displayName}</p>
+              <p className="text-xs text-gray-500 truncate">{email}</p>
             </div>
             <Link
               href="/portal/profile"

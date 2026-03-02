@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'My Portal',
-};
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+
+import { getMyActivityCounts, getMyProfile } from '@/lib/api/members.client';
 
 // ─── Quick stat card ──────────────────────────────────────────────────────────
 
@@ -59,15 +59,49 @@ function QuickAction({
   );
 }
 
+// ─── Stat skeleton ────────────────────────────────────────────────────────────
+
+function QuickStatSkeleton() {
+  return (
+    <div className="flex flex-col gap-1 p-5 rounded-2xl bg-white border border-gray-100 shadow-sm animate-pulse">
+      <div className="h-7 w-12 bg-gray-200 rounded mb-1" />
+      <div className="h-3.5 w-20 bg-gray-100 rounded" />
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function PortalDashboardPage() {
+  const [displayName, setDisplayName] = useState<string | null>(null);
+  const [counts, setCounts] = useState<{
+    rsvpCount: number;
+    forumPostCount: number;
+    donationCount: number;
+  } | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.allSettled([getMyProfile(), getMyActivityCounts()]).then(
+      ([profileResult, countsResult]) => {
+        if (profileResult.status === 'fulfilled') {
+          const p = profileResult.value;
+          setDisplayName(`${p.firstName} ${p.lastName}`);
+        }
+        if (countsResult.status === 'fulfilled') {
+          setCounts(countsResult.value);
+        }
+        setStatsLoading(false);
+      },
+    );
+  }, []);
+
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-5xl mx-auto">
       {/* Welcome banner */}
       <div className="rounded-2xl bg-gradient-to-r from-blue-700 to-blue-600 p-6 sm:p-8 mb-8 text-white">
         <p className="text-blue-100 text-sm font-medium mb-1">Welcome back</p>
-        <h1 className="text-2xl sm:text-3xl font-bold">CSE DIU Alumni Member</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">{displayName ?? 'CSE DIU Alumni Member'}</h1>
         <p className="mt-2 text-blue-100 text-sm max-w-lg">
           Your membership is active. Explore events, connect with alumni, and make the most of the
           platform.
@@ -99,10 +133,29 @@ export default function PortalDashboardPage() {
           Your activity
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <QuickStat label="Events RSVP'd" value={0} href="/portal/activity" />
-          <QuickStat label="Forum posts" value={0} href="/forum" />
-          <QuickStat label="Donations" value={0} href="/portal/activity" />
-          <QuickStat label="Mentorship" value="—" href="/mentorship" />
+          {statsLoading ? (
+            <>
+              <QuickStatSkeleton />
+              <QuickStatSkeleton />
+              <QuickStatSkeleton />
+              <QuickStatSkeleton />
+            </>
+          ) : (
+            <>
+              <QuickStat
+                label="Events RSVP'd"
+                value={counts?.rsvpCount ?? 0}
+                href="/portal/activity"
+              />
+              <QuickStat label="Forum posts" value={counts?.forumPostCount ?? 0} href="/forum" />
+              <QuickStat
+                label="Donations"
+                value={counts?.donationCount ?? 0}
+                href="/portal/activity"
+              />
+              <QuickStat label="Mentorship" value="—" href="/mentorship" />
+            </>
+          )}
         </div>
       </section>
 
