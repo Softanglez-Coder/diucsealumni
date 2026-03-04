@@ -62,6 +62,9 @@ const PERMISSIONS = [
   // Mentorship
   { name: 'mentorship:manage', description: 'Manage all mentorship relationships' },
 
+  // Committees
+  { name: 'committees:manage', description: 'Create and manage committees and their members' },
+
   // System
   { name: 'system:settings', description: 'Manage system settings' },
   { name: 'system:analytics', description: 'View analytics dashboard' },

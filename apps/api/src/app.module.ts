@@ -5,6 +5,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 
 import { AuthModule } from './modules/auth/auth.module';
+import { CommitteesModule } from './modules/committees/committees.module';
 import { DonationsModule } from './modules/donations/donations.module';
 import { EventsModule } from './modules/events/events.module';
 import { ForumModule } from './modules/forum/forum.module';
@@ -67,6 +68,7 @@ import { PrismaModule } from './prisma/prisma.module';
     SearchModule,
     MembershipCardsModule,
     StatsModule,
+    CommitteesModule,
   ],
 })
 export class AppModule {}

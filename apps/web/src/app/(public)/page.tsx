@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { getActiveCommittee } from '@/lib/api/committee.server';
 import { formatStat, getPlatformStats } from '@/lib/api/stats.server';
-import { getKeyMembers } from '@/lib/committee-data';
 
 export const metadata: Metadata = {
   title: 'Home',
@@ -229,14 +229,28 @@ export default async function HomePage() {
 
 // ─── Committee section ───────────────────────────────────────────────────────
 
-function CommitteeSection() {
-  const members = getKeyMembers();
+/** Derives display initials from a full name, skipping honorific prefixes. */
+function computeInitials(fullName: string): string {
+  const parts = fullName.split(/\s+/).filter((w) => !w.endsWith('.'));
+  return parts
+    .slice(0, 2)
+    .map((w) => (w[0] ?? '').toUpperCase())
+    .join('');
+}
+
+async function CommitteeSection() {
+  const committee = await getActiveCommittee();
+
+  if (!committee) return null;
+
+  const keyMembers = committee.members.filter((m) => m.isKeyMember);
+
   return (
     <section className="py-20 sm:py-24 bg-white">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-2xl mx-auto mb-14">
           <span className="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold uppercase tracking-wider mb-3">
-            Term 2024 – 2026
+            Term {committee.termLabel}
           </span>
           <h2 className="text-3xl font-bold text-gray-900">Executive Committee</h2>
           <p className="mt-4 text-gray-500">
@@ -246,26 +260,26 @@ function CommitteeSection() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {members.map((member) => (
+          {keyMembers.map((member) => (
             <Link
-              key={member.slug}
-              href={`/committee/${member.slug}`}
+              key={member.id}
+              href={member.slug ? `/committee/${member.slug}` : '/committee'}
               className="group block rounded-2xl border border-blue-100 bg-white p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
             >
               <div
-                className={`w-16 h-16 rounded-2xl ${member.avatarColor} flex items-center justify-center text-white text-xl font-bold mb-4 select-none`}
+                className={`w-16 h-16 rounded-2xl ${member.avatarColor ?? 'bg-blue-600'} flex items-center justify-center text-white text-xl font-bold mb-4 select-none`}
               >
-                {member.initials}
+                {computeInitials(member.name)}
               </div>
               <span className="inline-block px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold mb-2">
-                {member.roleShort}
+                {member.designationShort ?? member.designation}
               </span>
               <h3 className="font-semibold text-gray-900 leading-snug group-hover:text-blue-700 transition-colors">
                 {member.name}
               </h3>
-              <p className="text-xs text-gray-500 mt-0.5">{member.batch}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{member.batchYear}</p>
               <p className="text-xs text-gray-400 mt-2 line-clamp-1">{member.jobTitle}</p>
-              <p className="text-xs text-gray-400">{member.company}</p>
+              <p className="text-xs text-gray-400">{member.employer}</p>
             </Link>
           ))}
         </div>

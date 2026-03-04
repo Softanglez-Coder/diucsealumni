@@ -93,6 +93,7 @@ model User {
   forumVotes           ForumVote[]
   newsComments         NewsComment[]
   eventRsvps           EventRsvp[]
+  committeeMembers     CommitteeMember[]
 
   @@index([email])
   @@index([googleId])
@@ -548,6 +549,47 @@ model MembershipCard {
   reissuedAt       DateTime?
 
   @@map("membership_cards")
+}
+
+// ─── Committees ───────────────────────────────────────────────────────────────
+
+model Committee {
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  termLabel   String // e.g. "2024 – 2026"
+  isActive    Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  members     CommitteeMember[]
+
+  @@index([isActive])
+  @@map("committees")
+}
+
+model CommitteeMember {
+  id               String    @id @default(cuid())
+  committeeId      String
+  committee        Committee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+  userId           String? // optional link to a platform User
+  user             User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  slug             String? // e.g. "president" — used for public profile URL
+  name             String
+  email            String?
+  designation      String // full title e.g. "President"
+  designationShort String? // short title e.g. "President"
+  batchYear        String? // e.g. "Batch 2008"
+  jobTitle         String?
+  employer         String?
+  avatarColor      String? // Tailwind bg- class e.g. "bg-blue-700"
+  isKeyMember      Boolean   @default(false) // shown on homepage
+  rank             Int       @default(99) // sort order (lower = higher)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([committeeId])
+  @@index([isKeyMember])
+  @@map("committee_members")
 }
 
 // ─── Audit Log ────────────────────────────────────────────────────────────────
