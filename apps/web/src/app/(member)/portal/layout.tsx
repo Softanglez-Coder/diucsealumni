@@ -1,13 +1,19 @@
-import { redirect } from 'next/navigation';
-
+import { PortalAuthGuard } from '@/components/auth/portal-auth-guard';
 import { PortalShell } from '@/components/layout/portal-shell';
-import { getServerSession } from '@/lib/auth-server';
 
-export default async function PortalLayout({ children }: { children: React.ReactNode }) {
-  const session = await getServerSession();
-  if (!session) {
-    redirect('/auth/login');
-  }
-
-  return <PortalShell>{children}</PortalShell>;
+/**
+ * Layout for all /portal/** routes.
+ *
+ * Auth is enforced client-side by PortalAuthGuard, which transparently
+ * restores the session from the HttpOnly refresh-token cookie on page refresh
+ * without relying on a server-side cookie check that can fail across ports in
+ * development (cookie set by localhost:4000 might not always be forwarded to
+ * the Next.js server at localhost:3000 by all browsers/environments).
+ */
+export default function PortalLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <PortalAuthGuard>
+      <PortalShell>{children}</PortalShell>
+    </PortalAuthGuard>
+  );
 }

@@ -56,26 +56,44 @@ export async function apiClient<T>(path: string, options: ApiClientOptions = {})
   return data.data;
 }
 
+// Singleton refresh promise — prevents concurrent 401s (e.g. from multiple
+// API calls on page load) from triggering parallel token rotations. Token
+// rotation invalidates the previous refresh token, so the second concurrent
+// refresh would fail, causing a spurious redirect to /auth/login.
+let _refreshPromise: Promise<boolean> | null = null;
+
 /**
  * Attempts to refresh the access token by calling `POST /auth/refresh`.
- * Updates the in-memory store on success.
+ * Concurrent callers share one in-flight request so token rotation is never
+ * triggered twice with the same token.
+ *
+ * Exported so that the portal auth guard can call it on page load/refresh
+ * without each waiting component triggering a separate rotation.
  */
-async function tryRefreshTokens(): Promise<boolean> {
-  try {
-    const response = await fetch(`${API_BASE}/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include',
-    });
+export async function tryRefreshTokens(): Promise<boolean> {
+  if (_refreshPromise) return _refreshPromise;
 
-    if (!response.ok) return false;
+  _refreshPromise = (async (): Promise<boolean> => {
+    try {
+      const response = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
 
-    const body = (await response.json()) as { data: { accessToken: string } };
-    const { useAuthStore } = await import('./auth');
-    useAuthStore.getState().setAccessToken(body.data.accessToken);
-    return true;
-  } catch {
-    return false;
-  }
+      if (!response.ok) return false;
+
+      const body = (await response.json()) as { data: { accessToken: string } };
+      const { useAuthStore } = await import('./auth');
+      useAuthStore.getState().setAccessToken(body.data.accessToken);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      _refreshPromise = null;
+    }
+  })();
+
+  return _refreshPromise;
 }
 
 export class ApiError extends Error {

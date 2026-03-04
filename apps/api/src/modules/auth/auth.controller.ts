@@ -77,6 +77,7 @@ export class AuthController {
   }
 
   @Public()
+  @Public()
   @Get('google/callback')
   @UseGuards(GoogleOAuthGuard)
   @ApiOperation({ summary: 'Google OAuth callback' })
